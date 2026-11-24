@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arisan — Rotating Savings Circle on Gno.land</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+  header { background: linear-gradient(135deg, #7c3aed, #2563eb); padding: 2.5rem 1.25rem; text-align: center; }
+  header h1 { margin: 0; font-size: 2.4rem; }
+  header p { margin: .5rem auto 0; max-width: 640px; color: #ddd6fe; }
+  main { max-width: 880px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+  h2 { color: #c4b5fd; border-bottom: 1px solid #334155; padding-bottom: .3rem; }
+  a { color: #93c5fd; }
+  code, pre { background: #1e293b; border: 1px solid #334155; border-radius: 6px; }
+  code { padding: .1rem .35rem; }
+  pre { padding: .9rem; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  pre code { background: none; border: none; padding: 0; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .live { border-color: #22c55e; }
+  .live h2 { color: #86efac; border-color: #14532d; }
+  iframe { width: 100%; height: 520px; border: 1px solid #334155; border-radius: 8px; background: #fff; }
+  .steps li { margin-bottom: .9rem; }
+  footer { text-align: center; color: #94a3b8; font-size: .85rem; padding-bottom: 2rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🪙 Arisan</h1>
+  <p>Rotating savings circle, fully on-chain. Every member contributes every round; every round one member — in join order — takes the whole pot. No bank, no middleman, no trust needed beyond the code.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>What is arisan?</h2>
+    <p><strong>Arisan</strong> is an Indonesian tradition older than any bank: a group of neighbours, coworkers or family each put in a fixed amount every week or month, and each round one member takes the entire pot. It is savings, credit and community in one ritual — and it runs on trust.</p>
+    <p>This realm moves that trust on-chain. The rules (who joins, who paid, whose turn it is, where the money goes) and the money itself live in a Gno smart contract. Nobody — not even the organizer — can take the pot out of turn, skip a payment unnoticed, or change the rotation.</p>
+  </section>
+
+  <section class="card live">
+    <h2>● Live realm state (testnet)</h2>
+    <p>Live data, read straight from the Onyx testnet — never hardcoded. The dashboard below is the realm's own <code>Render()</code> output:</p>
+    <iframe src="https://latest.testnets.gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan" title="Arisan realm dashboard"></iframe>
+    <p>If the frame does not load, open the realm directly:<br>
+    <a href="https://latest.testnets.gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan">latest.testnets.gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan</a></p>
+  </section>
+
+  <section class="card">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><strong>Create a circle</strong> — anyone can create one: a name, a contribution per round (ugnot), a maximum number of members. The creator becomes the organizer.</li>
+      <li><strong>Join</strong> — members join while the circle is open. <em>Join order is rotation order</em>: first to join, first to take the pot. Deterministic, no lottery, no randomness.</li>
+      <li><strong>Start</strong> — the organizer starts round 1 once at least 2 members have joined.</li>
+      <li><strong>Deposit</strong> — every round, each member pays exactly the contribution with <code>-send</code>. Unpaid members are flagged <strong>BELUM BAYAR</strong> on the dashboard for everyone to see.</li>
+      <li><strong>Advance</strong> — the organizer advances the round <em>only when every member has paid</em>. The pot (members × contribution) is paid from the realm to the member whose turn it is, and the next round begins. The rotation wraps around, so everyone eventually takes the pot.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Try it (Onyx testnet)</h2>
+    <p>Install the <a href="https://docs.gno.land/builders/quickstart/">Gno toolchain</a>, fund a key at <a href="https://faucet.gno.land">faucet.gno.land</a> (Onyx), then run:</p>
+    <pre><code>REALM="gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan"
+RPC="https://rpc.onyx.testnets.gno.land:443"
+
+# 1. Create a circle (name, contribution in ugnot, max members)
+gnokey maketx call -pkgpath "$REALM" -func CreateCircle \
+  -args "Arisan RT 05" -args 1000 -args 4 \
+  -gas-fee 20000ugnot -gas-wanted 10000000 \
+  -chainid onyx-1 -remote $RPC mykey
+
+# 2. Join circle #1
+gnokey maketx call -pkgpath "$REALM" -func JoinCircle -args 1 \
+  -gas-fee 20000ugnot -gas-wanted 10000000 \
+  -chainid onyx-1 -remote $RPC mykey
+
+# 3. Organizer starts round 1
+gnokey maketx call -pkgpath "$REALM" -func StartCircle -args 1 \
+  -gas-fee 20000ugnot -gas-wanted 10000000 \
+  -chainid onyx-1 -remote $RPC mykey
+
+# 4. Deposit your contribution for the round
+gnokey maketx call -pkgpath "$REALM" -func Deposit -args 1 \
+  -send 1000ugnot -gas-fee 20000ugnot -gas-wanted 10000000 \
+  -chainid onyx-1 -remote $RPC mykey
+
+# 5. Organizer advances when everyone has paid
+gnokey maketx call -pkgpath "$REALM" -func AdvanceRound -args 1 \
+  -gas-fee 20000ugnot -gas-wanted 10000000 \
+  -chainid onyx-1 -remote $RPC mykey</code></pre>
+    <p>Read the state any time: <code>gnokey query vm/qeval -remote $RPC -data "$REALM.Render(&quot;/1&quot;)"</code></p>
+  </section>
+
+  <section class="card">
+    <h2>Links</h2>
+    <ul>
+      <li>Realm (live): <a href="https://latest.testnets.gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan">latest.testnets.gno.land/r/g1u9frcg00ncx6ws8h6whtkdg2z4gsv0hjvzh20w/arisan</a></li>
+      <li>Source: <a href="https://github.com/ketong112/arisan">github.com/ketong112/arisan</a></li>
+      <li>Hackathon: <a href="https://dorahacks.io/hackathon/gnome-tavern">Gnome Tavern Hackathon by Gno (DoraHacks)</a></li>
+    </ul>
+    <p>Built for the Gnome Tavern Hackathon (23 Nov – 18 Dec 2026). Testnet only — no real funds. MIT licensed.</p>
+  </section>
+</main>
+<footer>Arisan — rotating savings, on-chain. Testnet demo.</footer>
+</body>
+</html>
